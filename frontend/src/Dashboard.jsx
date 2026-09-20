@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import bgImage from "./images/bg5.jpg";
@@ -36,7 +36,9 @@ export default function Dashboard() {
   const sidebarRef = useRef(null);
   const mainRef = useRef(null);
 
-  if (!userId) navigate("/");
+  useEffect(() => {
+    if (!userId) navigate("/");
+  }, [userId, navigate]);
 
   // Initial Entrance Animation
   useEffect(() => {
@@ -55,19 +57,45 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Initial Data Fetching
-  useEffect(() => {
-    fetchChats();
-    fetchDocuments();
-  }, []);
-
-  const scrollToBottom = (instant = false) => {
+  const scrollToBottom = useCallback((instant = false) => {
     if (instant && chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     } else {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  };
+  }, []);
+
+  const fetchDocuments = useCallback(async () => {
+    setFetchingDocs(true);
+    try {
+      const res = await fetch(`${API}/documents?user_id=${userId}`);
+      const data = await res.json();
+      setUserDocuments(data.documents || []);
+    } catch (error) {
+      console.error("Failed to fetch documents", error);
+    } finally {
+      setFetchingDocs(false);
+    }
+  }, [userId]);
+
+  const fetchChats = useCallback(async () => {
+    setLoadingChats(true);
+    try {
+      const res = await fetch(`${API}/chat/list?user_id=${userId}`);
+      const data = await res.json();
+      setChats(data);
+    } catch (error) {
+      console.error("Failed to fetch chats", error);
+    } finally {
+      setLoadingChats(false);
+    }
+  }, [userId]);
+
+  // Initial Data Fetching
+  useEffect(() => {
+    fetchChats();
+    fetchDocuments();
+  }, [fetchChats, fetchDocuments]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -83,20 +111,7 @@ export default function Dashboard() {
         );
       }
     }
-  }, [messages]);
-
-  async function fetchDocuments() {
-    setFetchingDocs(true);
-    try {
-      const res = await fetch(`${API}/documents?user_id=${userId}`);
-      const data = await res.json();
-      setUserDocuments(data.documents || []);
-    } catch (error) {
-      console.error("Failed to fetch documents", error);
-    } finally {
-      setFetchingDocs(false);
-    }
-  }
+  }, [messages, scrollToBottom]);
 
   async function deleteDocument(filename) {
     if (!window.confirm(`Are you sure you want to delete ${filename}?`)) return;
@@ -119,19 +134,6 @@ export default function Dashboard() {
   }
 
   // Chat Functions
-  async function fetchChats() {
-    setLoadingChats(true);
-    try {
-      const res = await fetch(`${API}/chat/list?user_id=${userId}`);
-      const data = await res.json();
-      setChats(data);
-    } catch (error) {
-      console.error("Failed to fetch chats", error);
-    } finally {
-      setLoadingChats(false);
-    }
-  }
-
   async function createNewChat() {
     try {
       const res = await fetch(`${API}/chat/new`, {
@@ -329,13 +331,6 @@ export default function Dashboard() {
         newChatTitle={newChatTitle}
         setNewChatTitle={setNewChatTitle}
         setEditingChatId={setEditingChatId}
-        username={username}
-        userEmail={userEmail}
-        onOpenProfile={() => setShowProfile(true)}
-        onLogout={() => {
-          localStorage.clear();
-          navigate("/");
-        }}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         sidebarRef={sidebarRef}
@@ -362,7 +357,6 @@ export default function Dashboard() {
       <RightPanel
         username={username}
         userEmail={userEmail}
-        userId={userId}
         userDocuments={userDocuments}
         fetchingDocs={fetchingDocs}
         uploadDoc={uploadDoc}

@@ -1,10 +1,8 @@
 import React, { useRef, useState } from 'react';
-import gsap from 'gsap';
 
 export default function RightPanel({
     username,
     userEmail,
-    userId,
     userDocuments,
     fetchingDocs,
     uploadDoc,

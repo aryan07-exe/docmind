@@ -13,10 +13,6 @@ export default function Sidebar({
     newChatTitle,
     setNewChatTitle,
     setEditingChatId,
-    username,
-    userEmail,
-    onOpenProfile,
-    onLogout,
     mobileMenuOpen,
     setMobileMenuOpen,
     sidebarRef
